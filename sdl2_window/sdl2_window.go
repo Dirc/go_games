@@ -9,7 +9,7 @@ import (
 //
 // Variables
 //
-const winWidth, winHeight int = 80, 60
+const winWidth, winHeight int = 800, 600
 
 //
 // Structures and Functions
@@ -69,10 +69,21 @@ func main() {
 		}
 	}
 
-	tex.Update(nil, array_of_pixels, winWidth*4)
-	renderer.Copy(tex, nil, nil)
-	renderer.Present()
+	// Game loop
+	// Ends with quit event
+	for {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch event.(type) {
+			case *sdl.QuitEvent:
+				return
+			}
+		}
 
-	sdl.Delay(2000)
+		tex.Update(nil, array_of_pixels, winWidth*4)
+		renderer.Copy(tex, nil, nil)
+		renderer.Present()
+
+		sdl.Delay(16)
+	}
 
 }
