@@ -1,5 +1,14 @@
 package main
 
+// Features
+//
+// - framerate
+// - Score
+// - Game over state
+// - two player or PC
+// - AI needs to be inperfect
+// - resizing of the window
+
 import (
 	"fmt"
 
@@ -10,6 +19,14 @@ import (
 // Variables
 //
 const winWidth, winHeight int = 800, 600
+
+var ballStartPos pos = pos{float32(winWidth / 2), float32(winHeight / 2)}
+var ballStartXV float32 = 5
+var ballStartYV float32 = 5
+
+var paddleVelocity float32 = 5
+
+var score1, score2 int = 0, 0
 
 //
 // Structures and Functions
@@ -24,7 +41,7 @@ type pos struct {
 
 type ball struct {
 	pos
-	radius int
+	radius float32
 	xv     float32
 	yv     float32
 	color  color
@@ -34,28 +51,82 @@ func (ball *ball) draw(array_of_pixels []byte) {
 	for y := -ball.radius; y < ball.radius; y++ {
 		for x := -ball.radius; x < ball.radius; x++ {
 			if x*x+y*y < ball.radius*ball.radius {
-				setPixel(int(ball.x)+x, int(ball.y)+y, ball.color, array_of_pixels)
+				setPixel(int(ball.x+x), int(ball.y+y), ball.color, array_of_pixels)
 			}
 		}
 	}
+}
 
+func (ball *ball) update(leftPaddle *paddle, rightPaddle *paddle, score1 int, score2 int) {
+	ball.x += ball.xv
+	ball.y += ball.yv
+
+	// Collisions
+	// Collision: Top/bottom screen
+	if ball.y-ball.radius < 0 || ball.y+ball.radius > float32(winHeight) {
+		ball.yv = -ball.yv
+	}
+	// Collision: left/right screen - score
+	if ball.x < 0 {
+		ball.x = ballStartPos.x
+		score2++
+	}
+	if int(ball.x) > winWidth {
+		ball.y = ballStartPos.y
+		score1++
+	}
+	// Collision: left paddle
+	if ball.x-ball.radius < leftPaddle.x+leftPaddle.w/2 {
+		// ball between paddle bottom and paddle top
+		if ball.y+ball.radius < leftPaddle.y+leftPaddle.h/2 && ball.y-ball.radius > leftPaddle.y-leftPaddle.h/2 {
+			ball.xv = -ball.xv
+		}
+	}
+	// Collision: right paddle
+	if ball.x+ball.radius > rightPaddle.x-rightPaddle.w/2 {
+		// ball between paddle bottom and paddle top
+		if ball.y+ball.radius < rightPaddle.y+rightPaddle.h/2 && ball.y-ball.radius > rightPaddle.y-rightPaddle.h/2 {
+			ball.xv = -ball.xv
+		}
+	}
 }
 
 type paddle struct {
 	pos
-	w     int
-	h     int
+	w     float32
+	h     float32
 	color color
 }
 
 func (paddle *paddle) draw(array_of_pixels []byte) {
-	startX := int(paddle.x) - paddle.w/2
-	startY := int(paddle.y) - paddle.h/2
+	startX := int(paddle.x - paddle.w/2)
+	startY := int(paddle.y - paddle.h/2)
 
-	for y := 0; y < paddle.h; y++ {
-		for x := 0; x < paddle.w; x++ {
+	for y := 0; y < int(paddle.h); y++ {
+		for x := 0; x < int(paddle.w); x++ {
 			setPixel(startX+x, startY+y, paddle.color, array_of_pixels)
 		}
+	}
+}
+
+func (paddle *paddle) update(keyState []uint8) {
+	if keyState[sdl.SCANCODE_UP] != 0 {
+		paddle.y -= paddleVelocity
+	}
+	if keyState[sdl.SCANCODE_DOWN] != 0 {
+		paddle.y += paddleVelocity
+	}
+}
+
+func (paddle *paddle) aiUpdate(ball *ball) {
+	paddle.y = ball.y
+
+}
+
+// make all pixels black again
+func clear(array_of_pixels []byte) {
+	for i := range array_of_pixels {
+		array_of_pixels[i] = 0
 	}
 }
 
@@ -103,7 +174,7 @@ func main() {
 	// We need a array of width * height * 4.
 	array_of_pixels := make([]byte, winWidth*winHeight*4)
 
-	// Make every pixel RED
+	// Give every pixel a color
 	for y := 0; y < winHeight; y++ {
 		for x := 0; x < winWidth; x++ {
 			setPixel(x, y, color{0, 0, 0}, array_of_pixels)
@@ -113,7 +184,20 @@ func main() {
 	player1 := paddle{pos{30, float32(winHeight / 2)}, 20, 100, color{255, 255, 255}}
 	player2 := paddle{pos{float32(winWidth - 30), float32(winHeight / 2)}, 20, 100, color{255, 255, 255}}
 
-	ball := ball{pos{float32(winWidth / 2), float32(winHeight / 2)}, 20, 0, 0, color{255, 255, 255}}
+	ball := ball{ballStartPos, 20, ballStartXV, ballStartYV, color{255, 255, 255}}
+
+	// Keyboard input
+	// Define variable for keyState
+	//   keyState := sdl.GetKeyboardState()
+	//
+	// Verify if UP key is used:
+	//   if keyState[sdl.SCANCODE_UP] != 0 {}
+	// Verify if DOWN key is used:
+	//   if keyState[sdl.SCANCODE_DOWN] != 0 {}
+	//
+	// See for example: update function for paddle.
+
+	keyState := sdl.GetKeyboardState() // array of bytes "uint8", is used in paddle.update()
 
 	// Game loop
 	// Ends with quit event
@@ -124,6 +208,14 @@ func main() {
 				return
 			}
 		}
+		clear(array_of_pixels)
+
+		//fmt.Println(score1, score2)
+
+		player1.update(keyState)
+		player2.aiUpdate(&ball)
+		ball.update(&player1, &player2, score1, score2)
+
 		player1.draw(array_of_pixels)
 		player2.draw(array_of_pixels)
 		ball.draw(array_of_pixels)
