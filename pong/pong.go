@@ -2,17 +2,21 @@ package main
 
 // Features
 //
-// - paddle stay on screen
-// - ball cannot bounce behind paddle..
+// - [ ] Game over state
+// - [x] paddle stay on screen
+// - [ ] ball cannot bounce behind paddle..
+// - [x] start state: paddle in the middle
 //
-// - improve gameplay
+// - [ ] Build app, make it distributable
+// - [ ] Package the window/draw/ball/rectangle utils
+//
+// - [ ] AI needs to be inperfect
+// - [ ] improve gameplay
 //   - paddle angle bouncing
 //   - Ball start in random direction
 //   - Ball velocity increases
-// - Game over state
-// - two player or PC
-// - AI needs to be inperfect
-// - resizing of the window
+// - [x] two player or PC
+// - [ ] resizing of the window
 
 import (
 	"fmt"
@@ -114,6 +118,57 @@ var nums = [][]byte{
 		1, 1, 1,
 	}}
 
+var alphabet = [][]byte{
+	{
+		1, 1, 1,
+		1, 0, 1,
+		1, 1, 1,
+		1, 0, 1,
+		1, 0, 1,
+	},
+	{
+		1, 1, 1,
+		1, 0, 0,
+		1, 1, 1,
+		1, 0, 0,
+		1, 1, 1,
+	},
+	{
+		1, 1, 1,
+		1, 0, 0,
+		1, 1, 1,
+		1, 0, 1,
+		1, 1, 1,
+	},
+	{
+		1, 0, 1,
+		1, 1, 0,
+		1, 0, 1,
+		1, 0, 0,
+		1, 0, 1,
+	},
+	{
+		1, 1, 1,
+		1, 0, 1,
+		1, 0, 1,
+		1, 0, 1,
+		1, 1, 1,
+	},
+	{
+		1, 1, 1,
+		1, 0, 1,
+		1, 1, 1,
+		1, 1, 0,
+		1, 0, 1,
+	},
+	{
+		1, 0, 1,
+		1, 0, 1,
+		1, 0, 1,
+		1, 0, 1,
+		0, 1, 0,
+	}}
+
 //
 // Structures and Functions
 //
@@ -129,7 +184,7 @@ func getCenter() pos {
 	return pos{float32(winWidth / 2), float32(winHeight / 2)}
 }
 
-func drawNumber(pos pos, color color, size int, num int, array_of_pixels []byte) {
+func drawCharacter(pos pos, color color, size int, nums [][]byte, num int, array_of_pixels []byte) {
 	startX := int(pos.x) - (size*3)/2
 	startY := int(pos.y) - (size*5)/2
 
@@ -152,6 +207,14 @@ func drawNumber(pos pos, color color, size int, num int, array_of_pixels []byte)
 // lerp: standard helper function to position objects on the screen
 func lerp(a float32, b float32, pct float32) float32 {
 	return a + pct*(b-a)
+}
+
+func setState(score1 int, score2 int) gameState {
+	if score1 == 3 || score2 == 3 {
+		return gameover
+	} else {
+		return start
+	}
 }
 
 type ball struct {
@@ -186,11 +249,11 @@ func (ball *ball) update(leftPaddle *paddle, rightPaddle *paddle, elapsedTime fl
 	if ball.x < 0 {
 		rightPaddle.score++
 		ball.pos = getCenter()
-		state = start
+		state = setState(leftPaddle.score, rightPaddle.score)
 	} else if int(ball.x) > winWidth {
 		leftPaddle.score++
 		ball.pos = getCenter()
-		state = start
+		state = setState(leftPaddle.score, rightPaddle.score)
 	}
 	// Collision: left paddle
 	if ball.x-ball.radius < leftPaddle.x+leftPaddle.w/2 {
@@ -232,23 +295,45 @@ func (paddle *paddle) draw(array_of_pixels []byte) {
 	}
 
 	numX := lerp(paddle.x, getCenter().x, 0.2)
-	drawNumber(pos{numX, 35}, paddle.color, 10, paddle.score, array_of_pixels)
+	drawCharacter(pos{numX, 35}, paddle.color, 10, nums, paddle.score, array_of_pixels)
 }
 
-//func drawPaddle
+func (paddle *paddle) update1(keyState []uint8, elapsedTime float32) {
+	if keyState[sdl.SCANCODE_A] != 0 {
+		if paddle.y-paddle.h/2 <= 0 {
+			paddle.y = paddle.h / 2
+		} else if paddle.y-paddle.h/2 > 0 {
+			paddle.y -= paddle.speed * elapsedTime
+		}
+	}
+	if keyState[sdl.SCANCODE_Z] != 0 {
+		if paddle.y+paddle.h/2 >= float32(winHeight) {
+			paddle.y = float32(winHeight) - paddle.h/2
+		} else if paddle.y+paddle.h/2 <= float32(winHeight) {
+			paddle.y += paddle.speed * elapsedTime
+		}
+	}
+}
 
-func (paddle *paddle) update(keyState []uint8, elapsedTime float32) {
+func (paddle *paddle) update2(keyState []uint8, elapsedTime float32) {
 	if keyState[sdl.SCANCODE_UP] != 0 {
-		paddle.y -= paddle.speed * elapsedTime
+		if paddle.y-paddle.h/2 <= 0 {
+			paddle.y = paddle.h / 2
+		} else if paddle.y-paddle.h/2 > 0 {
+			paddle.y -= paddle.speed * elapsedTime
+		}
 	}
 	if keyState[sdl.SCANCODE_DOWN] != 0 {
-		paddle.y += paddle.speed * elapsedTime
+		if paddle.y+paddle.h/2 >= float32(winHeight) {
+			paddle.y = float32(winHeight) - paddle.h/2
+		} else if paddle.y+paddle.h/2 <= float32(winHeight) {
+			paddle.y += paddle.speed * elapsedTime
+		}
 	}
 }
 
 func (paddle *paddle) aiUpdate(ball *ball, elapsedTime float32) {
 	paddle.y = ball.y
-
 }
 
 // make all pixels black again
@@ -343,15 +428,29 @@ func main() {
 
 		// Update
 		if state == play {
-			player1.update(keyState, elapsedTime)
-			player2.aiUpdate(&ball, elapsedTime)
+			player1.update1(keyState, elapsedTime)
+			//player2.aiUpdate(&ball, elapsedTime)
+			player2.update2(keyState, elapsedTime)
 			ball.update(&player1, &player2, elapsedTime)
 		} else if state == start {
+			// reset paddles
+			player1.pos = pos{30, float32(winHeight / 2)}
+			player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
+			// Hit SPACE to start
 			if keyState[sdl.SCANCODE_SPACE] != 0 {
-				if player1.score == 3 || player2.score == 3 {
-					player1.score = 0
-					player2.score = 0
-				}
+				state = play
+			}
+		} else if state == gameover {
+			// Draw GAME OVER
+			//charX = lerp(0,winWidth, 0.5)
+			drawCharacter(getCenter(), color{255, 255, 255}, 20, alphabet, 0, array_of_pixels)
+			// reset paddles
+			player1.pos = pos{30, float32(winHeight / 2)}
+			player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
+			player1.score = 0
+			player2.score = 0
+			// Hit SPACE to start
+			if keyState[sdl.SCANCODE_SPACE] != 0 {
 				state = play
 			}
 		}
