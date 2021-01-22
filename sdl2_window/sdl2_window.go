@@ -65,7 +65,7 @@ func main() {
 	// Make every pixel RED
 	for y := 0; y < winHeight; y++ {
 		for x := 0; x < winWidth; x++ {
-			setPixel(x, y, color{0, 0, 0}, array_of_pixels)
+			setPixel(x, y, color{255, 255, 255}, array_of_pixels)
 		}
 	}
 
