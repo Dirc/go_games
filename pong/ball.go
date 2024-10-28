@@ -48,7 +48,6 @@ func (ball *ball) update(leftPaddle *paddle, rightPaddle *paddle, elapsedTime fl
 		// ball between paddle bottom and paddle top
 		if ball.y+ball.radius < leftPaddle.y+leftPaddle.h/2 && ball.y-ball.radius > leftPaddle.y-leftPaddle.h/2 {
 			ball.xv = -(ball.xv - acceleration)
-			println(ball.xv)
 			// Bugfix1: Ensure the ball bounces so that the above statement for x is not true again.
 			// Bug1: Ball could move inside the paddle if the statement keeps being true for x.
 			ball.x = leftPaddle.x + leftPaddle.w/2.0 + ball.radius

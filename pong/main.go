@@ -17,6 +17,7 @@ const (
 	start gameState = iota
 	play
 	gameover
+	newgame
 )
 
 var state = start
@@ -62,13 +63,14 @@ func main() {
 	// We need a array of width * height * 4.
 	array_of_pixels := make([]byte, winWidth*winHeight*4)
 
-	// Give every pixel a color
+	// Give every pixel a color: black
 	for y := 0; y < winHeight; y++ {
 		for x := 0; x < winWidth; x++ {
 			setPixel(x, y, color{0, 0, 0}, array_of_pixels)
 		}
 	}
 
+	// Draw initial
 	player1 := paddle{pos{30, float32(winHeight / 2)}, 20, 100, paddleSpeed, 0, color{255, 255, 255}}
 	player2 := paddle{pos{float32(winWidth - 30), float32(winHeight / 2)}, 20, 100, paddleSpeed, 0, color{255, 255, 255}}
 
@@ -119,11 +121,19 @@ func main() {
 		} else if state == gameover {
 			// Draw GAME OVER
 			//charX = lerp(0,winWidth, 0.5)
-			drawCharacter(getCenter(), color{255, 255, 255}, 20, alphabet, 0, array_of_pixels)
+			clear(array_of_pixels)
+			drawGameOver(15, 60, array_of_pixels)
+
+			// Update texture and render
+			tex.Update(nil, unsafe.Pointer(&array_of_pixels[0]), winWidth*4)
+			renderer.Copy(tex, nil, nil)
+			renderer.Present()
+
 			// Hit SPACE to start
 			if keyState[sdl.SCANCODE_SPACE] != 0 {
-				state = play
+				state = newgame
 			}
+		} else if state == newgame {
 			// reset paddles
 			player1.pos = pos{30, float32(winHeight / 2)}
 			player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}

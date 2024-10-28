@@ -18,7 +18,9 @@ go build -o pong pong.go
 Features
 
 - [x] logical order code into separate files 
-- [ ] Game over state
+- [x] Game over state
+- [ ] improve game loop (tex.update, render only when state requires it)
+  - after game over, freeze in 0-0 state.
 - [x] paddle stay on screen
 - [ ] ball cannot bounce behind paddle..
 - [x] start state: paddle in the middle

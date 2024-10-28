@@ -15,12 +15,14 @@ func (paddle *paddle) draw(array_of_pixels []byte) {
 	startX := int(paddle.x - paddle.w/2)
 	startY := int(paddle.y - paddle.h/2)
 
+	// Draw paddle
 	for y := 0; y < int(paddle.h); y++ {
 		for x := 0; x < int(paddle.w); x++ {
 			setPixel(startX+x, startY+y, paddle.color, array_of_pixels)
 		}
 	}
 
+	// Draw score
 	numX := lerp(paddle.x, getCenter().x, 0.2)
 	drawCharacter(pos{numX, 35}, paddle.color, 10, nums, paddle.score, array_of_pixels)
 }
