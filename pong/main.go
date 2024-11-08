@@ -64,13 +64,14 @@ func main() {
 	array_of_pixels := make([]byte, winWidth*winHeight*4)
 
 	// Give every pixel a color: black
-	for y := 0; y < winHeight; y++ {
-		for x := 0; x < winWidth; x++ {
-			setPixel(x, y, color{0, 0, 0}, array_of_pixels)
-		}
-	}
+	clear(array_of_pixels)
+	//for y := 0; y < winHeight; y++ {
+	//	for x := 0; x < winWidth; x++ {
+	//		setPixel(x, y, color{0, 0, 0}, array_of_pixels)
+	//	}
+	//}
 
-	// Draw initial
+	// Set initial
 	player1 := paddle{pos{30, float32(winHeight / 2)}, 20, 100, paddleSpeed, 0, color{255, 255, 255}}
 	player2 := paddle{pos{float32(winWidth - 30), float32(winHeight / 2)}, 20, 100, paddleSpeed, 0, color{255, 255, 255}}
 
@@ -103,53 +104,113 @@ func main() {
 			}
 		}
 
-		// Update
-		if state == play {
-			player1.update1(keyState, elapsedTime)
-			//player2.aiUpdate(&ball, elapsedTime)
-			player2.update2(keyState, elapsedTime)
-			ball.update(&player1, &player2, elapsedTime)
-		} else if state == start {
+		clear(array_of_pixels)
+
+		switch state {
+		case start:
+			//drawStartScreen()
 			// reset paddles and ball.velocity
 			player1.pos = pos{30, float32(winHeight / 2)}
 			player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
 			ball.reset(ballStartVelocity)
+
+			player1.draw(array_of_pixels)
+			player2.draw(array_of_pixels)
+			ball.draw(array_of_pixels)
+
 			// Hit SPACE to start
 			if keyState[sdl.SCANCODE_SPACE] != 0 {
 				state = play
 			}
-		} else if state == gameover {
+
+		case play:
+			player1.update1(keyState, elapsedTime)
+			//player2.aiUpdate(&ball, elapsedTime)
+			player2.update2(keyState, elapsedTime)
+			ball.update(&player1, &player2, elapsedTime)
+
+			clear(array_of_pixels)
+			player1.draw(array_of_pixels)
+			player2.draw(array_of_pixels)
+			ball.draw(array_of_pixels)
+
+		case gameover:
 			// Draw GAME OVER
 			//charX = lerp(0,winWidth, 0.5)
 			clear(array_of_pixels)
 			drawGameOver(15, 60, array_of_pixels)
 
-			// Update texture and render
-			tex.Update(nil, unsafe.Pointer(&array_of_pixels[0]), winWidth*4)
-			renderer.Copy(tex, nil, nil)
-			renderer.Present()
-
 			// Hit SPACE to start
 			if keyState[sdl.SCANCODE_SPACE] != 0 {
 				state = newgame
 			}
-		} else if state == newgame {
+
+		case newgame:
 			// reset paddles
 			player1.pos = pos{30, float32(winHeight / 2)}
 			player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
 			player1.score = 0
 			player2.score = 0
+
+			clear(array_of_pixels)
+			player1.draw(array_of_pixels)
+			player2.draw(array_of_pixels)
+			ball.draw(array_of_pixels)
+
 			// Hit SPACE to start
 			if keyState[sdl.SCANCODE_SPACE] != 0 {
-				state = play
+				state = start
 			}
+			//state = start
 		}
 
-		// Draw
-		clear(array_of_pixels)
-		player1.draw(array_of_pixels)
-		player2.draw(array_of_pixels)
-		ball.draw(array_of_pixels)
+		//// Update
+		//if state == play {
+		//	player1.update1(keyState, elapsedTime)
+		//	//player2.aiUpdate(&ball, elapsedTime)
+		//	player2.update2(keyState, elapsedTime)
+		//	ball.update(&player1, &player2, elapsedTime)
+		//} else if state == start {
+		//	// reset paddles and ball.velocity
+		//	player1.pos = pos{30, float32(winHeight / 2)}
+		//	player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
+		//	ball.reset(ballStartVelocity)
+		//	// Hit SPACE to start
+		//	if keyState[sdl.SCANCODE_SPACE] != 0 {
+		//		state = play
+		//	}
+		//} else if state == gameover {
+		//	// Draw GAME OVER
+		//	//charX = lerp(0,winWidth, 0.5)
+		//	clear(array_of_pixels)
+		//	drawGameOver(15, 60, array_of_pixels)
+		//
+		//	// Update texture and render
+		//	tex.Update(nil, unsafe.Pointer(&array_of_pixels[0]), winWidth*4)
+		//	renderer.Copy(tex, nil, nil)
+		//	renderer.Present()
+		//
+		//	// Hit SPACE to start
+		//	if keyState[sdl.SCANCODE_SPACE] != 0 {
+		//		state = newgame
+		//	}
+		//} else if state == newgame {
+		//	// reset paddles
+		//	player1.pos = pos{30, float32(winHeight / 2)}
+		//	player2.pos = pos{float32(winWidth - 30), float32(winHeight / 2)}
+		//	player1.score = 0
+		//	player2.score = 0
+		//	// Hit SPACE to start
+		//	if keyState[sdl.SCANCODE_SPACE] != 0 {
+		//		state = play
+		//	}
+		//}
+		//
+		//// Draw
+		//clear(array_of_pixels)
+		//player1.draw(array_of_pixels)
+		//player2.draw(array_of_pixels)
+		//ball.draw(array_of_pixels)
 
 		tex.Update(nil, unsafe.Pointer(&array_of_pixels[0]), winWidth*4)
 		renderer.Copy(tex, nil, nil)
